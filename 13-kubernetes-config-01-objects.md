@@ -75,6 +75,7 @@ spec:
       targetPort: 5432
 
 ```
+<img width="735" alt="Screenshot 2021-07-30 at 17 04 29" src="https://user-images.githubusercontent.com/67638098/127769239-5de0ffd1-abcb-4ae7-a61e-9128fbfb892a.png">
 
 ## Задание 2: подготовить конфиг для production окружения
 Следующим шагом будет запуск приложения в production окружении. Требования сложнее:
@@ -83,8 +84,126 @@ spec:
 * в окружении фронта прописан адрес сервиса бекенда;
 * в окружении бекенда прописан адрес сервиса базы данных.
 
-<img width="735" alt="Screenshot 2021-07-30 at 17 04 29" src="https://user-images.githubusercontent.com/67638098/127769239-5de0ffd1-abcb-4ae7-a61e-9128fbfb892a.png">
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - image: marinakrivitskaya/13-1-frontend:latest
+        name: frontend
+        ports:
+        - containerPort: 80
+        env:
+          - name: BASE_URL
+            value: http://backend:9000
+      restartPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: backend
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - image: marinakrivitskaya/13-1-backend:latest
+        name: frontend
+        ports:
+        - containerPort: 9000
+        env:
+          - name: DATABASE_URL
+            value: postgres://postgres:postgres@db:5432/news
+      restartPolicy: Always
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql-db
+spec:
+  serviceName: “postgresql-db”
+  selector:
+    matchLabels:
+      app: postgresql-db
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgresql-db
+    spec:
+      containers:
+      - name: postgresql-db
+        image: postgres:13-alpine
+        ports:
+        - containerPort: 5432
+        env:
+          - name: POSTGRES_DB
+            value: news
+          - name: POSTGRES_PASSWORD
+            value: postgres
+          - name: POSTGRES_USER
+            value: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-db
+spec:
+  selector:
+    app: postgresql-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+```
 
+
+<img width="1280" alt="Screenshot 2021-08-02 at 12 18 55" src="https://user-images.githubusercontent.com/67638098/127846386-3033b2b5-c4fb-493a-902b-56d76662dbfd.png">
 
 ## Задание 3 (*): добавить endpoint на внешний ресурс api
 Приложению потребовалось внешнее api, и для его использования лучше добавить endpoint в кластер, направленный на это api. Требования:
