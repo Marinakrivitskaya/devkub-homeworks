@@ -12,13 +12,13 @@ node1   ansible_host=169.254.25.10 ip=169.254.25.10
 node2   ansible_host=169.254.25.20 ip=169.254.25.20
 
 [kube-master]
-master0
+node1
 
 [etcd]
-master0
+node1
 
 [kube-node]
-worker1
+node2
 
 [k8s-cluster:children]
 kube-master
